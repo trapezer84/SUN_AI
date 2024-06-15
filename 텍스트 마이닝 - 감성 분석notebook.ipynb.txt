@@ -1,0 +1,1697 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "display_name": "TF-GPU",
+      "language": "python",
+      "name": "tf-gpu"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.6.7"
+    },
+    "colab": {
+      "name": "텍스트 마이닝 - 감성 분석",
+      "provenance": [],
+      "include_colab_link": true
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/gist/FinanceData/92dd852ab5512bba40ac02ece8b06ac0/notebook.ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "RtyMSLLgnRx1"
+      },
+      "source": [
+        "# 텍스트 마이닝 - 감성 분석\n",
+        "\n",
+        "<img width=\"30%\" src=\"https://i.imgur.com/4MO7SIN.png\" >\n",
+        "\n",
+        "**2018-2023 [FinanceData.KR]()**"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "lXWXVZw5nRx3"
+      },
+      "source": [
+        "# 감성, 감정\n",
+        "* 감정(感情, emotion): 어떤 일이나 현상 사물에 대하여 느끼어 나타나는 심정이나 기분\n",
+        "* 감성(感性, sentiment): 자극에 대하여 느낌이 일어나는 능력\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "GVvSbWwWnRx4"
+      },
+      "source": [
+        "# 감성사전 코퍼스\n",
+        "\n",
+        "* 서울대학교 kosac (7713 어휘) <br>\n",
+        "http://word.snu.ac.kr/kosac/\n",
+        "* 군산대학교 KNU 한국어 감성사전 (긍정어/부정어 각각 2500 어휘)<br>\n",
+        "http://dilab.kunsan.ac.kr/knusl.html\n",
+        "* Hu and Liu (6,789 어휘)<br>\n",
+        "https://www.cs.uic.edu/~liub/FBS/sentiment-analysis.html\n",
+        "* Erik Cambria (100,000 어휘)<br>\n",
+        "http://sentic.net\n",
+        "    "
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "pi7Ai0qfnRx5"
+      },
+      "source": [
+        "# 사전 만드는 법\n",
+        "* Dragut, E. C., Yu, C., Sistla, P., & Meng, W. (2010)<br>\n",
+        "Construction of a sentimental word dictionary.<br>\n",
+        "Paper presented at the Proceedings of the 19th ACM international conference on Information and knowledge management.<br>\n",
+        "http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.299.4358&rep=rep1&type=pdf\n",
+        "\n",
+        "\n",
+        "* Rao, Y., Lei, J., Wenyin, L., Li, Q., & Chen, M. (2014)<br>\n",
+        "Building emotional dictionary for sentiment analysis of online news.<br>\n",
+        "World Wide Web , 17(4), 723-742.<br>\n",
+        "https://www.researchgate.net/publication/257676536_Building_emotional_dictionary_for_sentiment_analysis_of_online_news"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "9h61ur8ynRx6"
+      },
+      "source": [
+        "# KOSAC  감성사전 코퍼스\n",
+        "kosac (KOrean Sentiment Analysis Corpus, 서울대학교 언어학과)\n",
+        "\n",
+        "http://word.snu.ac.kr/kosac/\n",
+        "\n",
+        "주요 신문 332개의 기사, 7744개의 문장을 선정, 3명의 연구진들이 주석하여 구축 <br>\n",
+        "http://aclweb.org/anthology/Y13-1037\n",
+        "\n",
+        "\n",
+        "Subjective | Objective | Total\n",
+        "-- | -- | --\n",
+        "2658 | 5055 | 7713\n",
+        "\n",
+        "### Polarity 사전\n",
+        "* 각 형태소의 극성(Polarity)을 설명\n",
+        "* COMP, NEG, NEUT, NONE, POS 의 속성으로 표현\n",
+        "\n",
+        "### Intensity 사전\n",
+        "* 해당 형태소에 주관성(Intensity)의 정도를 설명하는 사전\n",
+        "* High, Low, Medium, None 의 속성으로 표현"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "A3wfgmJqnRx7"
+      },
+      "source": [
+        "<img width=\"80%\" src=\"https://i.imgur.com/FL5V20w.png\">\n",
+        "\n",
+        "http://statmath.wu.ac.at/courses/SNLP/Presentations/DA-Sentiment.pdf"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "a6yfvFw3nRx8"
+      },
+      "source": [
+        "# KOSAC 사전 가져오기"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "misDvtOGnRx9",
+        "outputId": "5f0a3535-d5bc-47fa-edba-0d2675c009f8"
+      },
+      "source": [
+        "!git clone https://github.com/FinanceData/corpus.git"
+      ],
+      "execution_count": 1,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Cloning into 'corpus'...\n",
+            "remote: Enumerating objects: 11, done.\u001b[K\n",
+            "remote: Total 11 (delta 0), reused 0 (delta 0), pack-reused 11\u001b[K\n",
+            "Unpacking objects: 100% (11/11), 680.85 KiB | 4.54 MiB/s, done.\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 707
+        },
+        "id": "ZtkP_Vt_nRx-",
+        "outputId": "e9398f2f-435d-4639-d13d-8e09ff0a53ce"
+      },
+      "source": [
+        "import pandas as pd\n",
+        "\n",
+        "polarity_dic = pd.read_csv('corpus/kosac/polarity.csv')\n",
+        "polarity_dic.set_index('ngram', inplace=True)\n",
+        "polarity_dic.head(20)"
+      ],
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "                     freq      COMP       NEG      NEUT      None       POS  \\\n",
+              "ngram                                                                         \n",
+              "가*/JKS                  1  0.000000  0.000000  0.000000  0.000000  1.000000   \n",
+              "가*/JKS;있/VV             1  0.000000  0.000000  0.000000  0.000000  1.000000   \n",
+              "가*/JKS;있/VV;었/EP        1  0.000000  0.000000  0.000000  0.000000  1.000000   \n",
+              "가*/VV                   3  0.000000  0.000000  0.000000  0.000000  1.000000   \n",
+              "가*/VV;ㄴ다*/EF            1  0.000000  0.000000  0.000000  0.000000  1.000000   \n",
+              "가/JKC                  17  0.000000  0.470588  0.235294  0.000000  0.294118   \n",
+              "가/JKC;되/VV             11  0.000000  0.363636  0.272727  0.000000  0.363636   \n",
+              "가/JKC;되/VV;ㄴ/ETM        2  0.000000  0.000000  1.000000  0.000000  0.000000   \n",
+              "가/JKC;되/VV;ㄹ/ETM        1  0.000000  0.000000  1.000000  0.000000  0.000000   \n",
+              "가/JKC;되/VV;어/EC         2  0.000000  1.000000  0.000000  0.000000  0.000000   \n",
+              "가/JKC;되/VV;어야지요/EF      1  0.000000  0.000000  0.000000  0.000000  1.000000   \n",
+              "가/JKC;아니/VCN            6  0.000000  0.666667  0.166667  0.000000  0.166667   \n",
+              "가/JKC;아니/VCN;ㄴ가/EC      1  0.000000  1.000000  0.000000  0.000000  0.000000   \n",
+              "가/JKC;아니/VCN;면/EC       1  0.000000  0.000000  0.000000  0.000000  1.000000   \n",
+              "가/JKC;아니/VCN;ㅂ니다/EF     1  0.000000  1.000000  0.000000  0.000000  0.000000   \n",
+              "가/JKS                 112  0.017857  0.464286  0.080357  0.026786  0.410714   \n",
+              "가/JKS;가능/NNG            1  0.000000  0.000000  0.000000  0.000000  1.000000   \n",
+              "가/JKS;가능/NNG;하/XSA      1  0.000000  0.000000  0.000000  0.000000  1.000000   \n",
+              "가/JKS;가장/MAG            2  0.000000  1.000000  0.000000  0.000000  0.000000   \n",
+              "가/JKS;가장/MAG;많이/MAG     1  0.000000  1.000000  0.000000  0.000000  0.000000   \n",
+              "\n",
+              "                    max.value  max.prop  \n",
+              "ngram                                    \n",
+              "가*/JKS                    POS  1.000000  \n",
+              "가*/JKS;있/VV               POS  1.000000  \n",
+              "가*/JKS;있/VV;었/EP          POS  1.000000  \n",
+              "가*/VV                     POS  1.000000  \n",
+              "가*/VV;ㄴ다*/EF              POS  1.000000  \n",
+              "가/JKC                     NEG  0.470588  \n",
+              "가/JKC;되/VV                NEG  0.363636  \n",
+              "가/JKC;되/VV;ㄴ/ETM         NEUT  1.000000  \n",
+              "가/JKC;되/VV;ㄹ/ETM         NEUT  1.000000  \n",
+              "가/JKC;되/VV;어/EC           NEG  1.000000  \n",
+              "가/JKC;되/VV;어야지요/EF        POS  1.000000  \n",
+              "가/JKC;아니/VCN              NEG  0.666667  \n",
+              "가/JKC;아니/VCN;ㄴ가/EC        NEG  1.000000  \n",
+              "가/JKC;아니/VCN;면/EC         POS  1.000000  \n",
+              "가/JKC;아니/VCN;ㅂ니다/EF       NEG  1.000000  \n",
+              "가/JKS                     NEG  0.464286  \n",
+              "가/JKS;가능/NNG              POS  1.000000  \n",
+              "가/JKS;가능/NNG;하/XSA        POS  1.000000  \n",
+              "가/JKS;가장/MAG              NEG  1.000000  \n",
+              "가/JKS;가장/MAG;많이/MAG       NEG  1.000000  "
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-45aef244-3789-4f8e-9f5e-8e01703e611c\">\n",
+              "    <div class=\"colab-df-container\">\n",
+              "      <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>freq</th>\n",
+              "      <th>COMP</th>\n",
+              "      <th>NEG</th>\n",
+              "      <th>NEUT</th>\n",
+              "      <th>None</th>\n",
+              "      <th>POS</th>\n",
+              "      <th>max.value</th>\n",
+              "      <th>max.prop</th>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>ngram</th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>가*/JKS</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가*/JKS;있/VV</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가*/JKS;있/VV;었/EP</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가*/VV</th>\n",
+              "      <td>3</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가*/VV;ㄴ다*/EF</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKC</th>\n",
+              "      <td>17</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.470588</td>\n",
+              "      <td>0.235294</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.294118</td>\n",
+              "      <td>NEG</td>\n",
+              "      <td>0.470588</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKC;되/VV</th>\n",
+              "      <td>11</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.363636</td>\n",
+              "      <td>0.272727</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.363636</td>\n",
+              "      <td>NEG</td>\n",
+              "      <td>0.363636</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKC;되/VV;ㄴ/ETM</th>\n",
+              "      <td>2</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>NEUT</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKC;되/VV;ㄹ/ETM</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>NEUT</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKC;되/VV;어/EC</th>\n",
+              "      <td>2</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>NEG</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKC;되/VV;어야지요/EF</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKC;아니/VCN</th>\n",
+              "      <td>6</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.666667</td>\n",
+              "      <td>0.166667</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.166667</td>\n",
+              "      <td>NEG</td>\n",
+              "      <td>0.666667</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKC;아니/VCN;ㄴ가/EC</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>NEG</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKC;아니/VCN;면/EC</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKC;아니/VCN;ㅂ니다/EF</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>NEG</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKS</th>\n",
+              "      <td>112</td>\n",
+              "      <td>0.017857</td>\n",
+              "      <td>0.464286</td>\n",
+              "      <td>0.080357</td>\n",
+              "      <td>0.026786</td>\n",
+              "      <td>0.410714</td>\n",
+              "      <td>NEG</td>\n",
+              "      <td>0.464286</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKS;가능/NNG</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKS;가능/NNG;하/XSA</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKS;가장/MAG</th>\n",
+              "      <td>2</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>NEG</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가/JKS;가장/MAG;많이/MAG</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>NEG</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>\n",
+              "      <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-45aef244-3789-4f8e-9f5e-8e01703e611c')\"\n",
+              "              title=\"Convert this dataframe to an interactive table.\"\n",
+              "              style=\"display:none;\">\n",
+              "        \n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\"viewBox=\"0 0 24 24\"\n",
+              "       width=\"24px\">\n",
+              "    <path d=\"M0 0h24v24H0V0z\" fill=\"none\"/>\n",
+              "    <path d=\"M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z\"/><path d=\"M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z\"/>\n",
+              "  </svg>\n",
+              "      </button>\n",
+              "      \n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      flex-wrap:wrap;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "      <script>\n",
+              "        const buttonEl =\n",
+              "          document.querySelector('#df-45aef244-3789-4f8e-9f5e-8e01703e611c button.colab-df-convert');\n",
+              "        buttonEl.style.display =\n",
+              "          google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "        async function convertToInteractive(key) {\n",
+              "          const element = document.querySelector('#df-45aef244-3789-4f8e-9f5e-8e01703e611c');\n",
+              "          const dataTable =\n",
+              "            await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                     [key], {});\n",
+              "          if (!dataTable) return;\n",
+              "\n",
+              "          const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "            '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "            + ' to learn more about interactive tables.';\n",
+              "          element.innerHTML = '';\n",
+              "          dataTable['output_type'] = 'display_data';\n",
+              "          await google.colab.output.renderOutput(dataTable, element);\n",
+              "          const docLink = document.createElement('div');\n",
+              "          docLink.innerHTML = docLinkHtml;\n",
+              "          element.appendChild(docLink);\n",
+              "        }\n",
+              "      </script>\n",
+              "    </div>\n",
+              "  </div>\n",
+              "  "
+            ]
+          },
+          "metadata": {},
+          "execution_count": 2
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "kY-kIh1YnRx_",
+        "outputId": "a2b7918e-4a3b-4983-9579-50200ab65641"
+      },
+      "source": [
+        "len(polarity_dic)"
+      ],
+      "execution_count": 3,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "16362"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 3
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "UtwsNBSZnRyA"
+      },
+      "source": [
+        "# 한국어 형태소 분석\n",
+        "\n",
+        "Kkma http://kkma.snu.ac.kr"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "C7ISo471pCgf",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "c61e2599-19bc-4559-e767-997360434686"
+      },
+      "source": [
+        "!pip -q install konlpy"
+      ],
+      "execution_count": 4,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m19.4/19.4 MB\u001b[0m \u001b[31m42.7 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m465.3/465.3 kB\u001b[0m \u001b[31m29.4 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25h"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "5I2VOSB9nRyA",
+        "outputId": "5f85f78f-7ad0-47d3-d985-3cf7cc57e047"
+      },
+      "source": [
+        "from konlpy.tag import Mecab, Okt, Kkma\n",
+        "\n",
+        "engine = Kkma()\n",
+        "engine.pos(\"밤하늘에 별이 반짝인다\")"
+      ],
+      "execution_count": 5,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "[('밤하늘', 'NNG'),\n",
+              " ('에', 'JKM'),\n",
+              " ('별', 'NNG'),\n",
+              " ('이', 'JKS'),\n",
+              " ('반짝이', 'VV'),\n",
+              " ('ㄴ다', 'EFN')]"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 5
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "PvO69qGLnRyB",
+        "outputId": "e043786f-dc83-46f8-f49b-c45ea7dce61c"
+      },
+      "source": [
+        "text = '금융투자업계에 따르면 지난주 1분기 실적을 발표한 상장 기업 중 상당수가' \\\n",
+        "       '시장 전망치를 뛰어넘는 양호한 실적을 내놓은 것으로 나타났다'\n",
+        "\n",
+        "engine.pos(text)[:10]"
+      ],
+      "execution_count": 6,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "[('금융', 'NNG'),\n",
+              " ('투자', 'NNG'),\n",
+              " ('업계', 'NNG'),\n",
+              " ('에', 'JKM'),\n",
+              " ('따르', 'VV'),\n",
+              " ('면', 'ECE'),\n",
+              " ('지난주', 'NNG'),\n",
+              " ('1', 'NR'),\n",
+              " ('분기', 'NNG'),\n",
+              " ('실적', 'NNG')]"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 6
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "BCOFieE6nRyC",
+        "outputId": "988c2731-3066-47df-a43a-14ecb6c52dc5"
+      },
+      "source": [
+        "text = '무역협상이 재개되자마자 돌발악재가 발생하면서 세계 각국 증시가 줄줄이 하락했다'\n",
+        "engine.pos(text)[:10]"
+      ],
+      "execution_count": 7,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "[('무역', 'NNG'),\n",
+              " ('협상', 'NNG'),\n",
+              " ('이', 'JKS'),\n",
+              " ('재개', 'NNG'),\n",
+              " ('되', 'XSV'),\n",
+              " ('자마자', 'ECE'),\n",
+              " ('돌발', 'NNG'),\n",
+              " ('악재', 'NNG'),\n",
+              " ('가', 'JKS'),\n",
+              " ('발생', 'NNG')]"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 7
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "eSUUFTr1nRyD"
+      },
+      "source": [
+        "# n-gram\n",
+        "n-gram is a contiguous sequence of n items from a given sample of text or speech.\n",
+        "\n",
+        "The items can be phonemes, syllables, letters, words or base pairs according to the application. The n-grams typically are collected from a text or speech corpus. When the items are words, n-grams may also be called shingles\n",
+        "\n",
+        "an n-gram of size 1 is referred to as a \"unigram\"; size 2 is a \"bigram\" (or, less commonly, a \"digram\"); size 3 is a \"trigram\".\n",
+        "\n",
+        "https://en.wikipedia.org/wiki/N-gram"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "IfDFSRuSnRyE"
+      },
+      "source": [
+        "# n-gram 만들기\n",
+        "\n",
+        "http://locallyoptimal.com/blog/2013/01/20/elegant-n-gram-generation-in-python/\n",
+        "    "
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "qXA3mvxmnRyF",
+        "outputId": "670971ed-800a-4f88-8f49-6faaafb42435"
+      },
+      "source": [
+        "text = \"i read a book last night\"\n",
+        "tokens = text.split(\" \")\n",
+        "tokens"
+      ],
+      "execution_count": 8,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "['i', 'read', 'a', 'book', 'last', 'night']"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 8
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "YVUIEf2EnRyF",
+        "outputId": "dc09c2a8-afe5-4830-cabf-dcc3c8eb48f4"
+      },
+      "source": [
+        "# uni-gram\n",
+        "tokens"
+      ],
+      "execution_count": 9,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "['i', 'read', 'a', 'book', 'last', 'night']"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 9
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "cRSTbK6vnRyG",
+        "outputId": "2c0ad901-322a-4f0f-9248-bfa20affe5b3"
+      },
+      "source": [
+        "# bigram\n",
+        "list(zip(tokens, tokens[1:]))"
+      ],
+      "execution_count": 10,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "[('i', 'read'),\n",
+              " ('read', 'a'),\n",
+              " ('a', 'book'),\n",
+              " ('book', 'last'),\n",
+              " ('last', 'night')]"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 10
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "vp0nPQxXnRyH",
+        "outputId": "5a271df5-0f50-4378-fe6c-028bca3bcda0"
+      },
+      "source": [
+        "# trigram\n",
+        "list(zip( *[tokens[i:] for i in range(3)]))"
+      ],
+      "execution_count": 11,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "[('i', 'read', 'a'),\n",
+              " ('read', 'a', 'book'),\n",
+              " ('a', 'book', 'last'),\n",
+              " ('book', 'last', 'night')]"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 11
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "3NW10tiQnRyH"
+      },
+      "source": [
+        "# 한국어 n-gram 만들기"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "DCUgwzbBnRyI",
+        "outputId": "600d5422-02ec-46b7-dfd0-d77066bec76f"
+      },
+      "source": [
+        "from konlpy.tag import Kkma\n",
+        "\n",
+        "engine = Kkma()\n",
+        "pos_tags = engine.pos(\"밤하늘에 별이 반짝인다\")\n",
+        "pos_tags"
+      ],
+      "execution_count": 12,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "[('밤하늘', 'NNG'),\n",
+              " ('에', 'JKM'),\n",
+              " ('별', 'NNG'),\n",
+              " ('이', 'JKS'),\n",
+              " ('반짝이', 'VV'),\n",
+              " ('ㄴ다', 'EFN')]"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 12
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "MX6ns73UnRyI",
+        "outputId": "7c6d63da-ad53-49b3-e42a-bd557885b5fe"
+      },
+      "source": [
+        "# unigram\n",
+        "unigram = ['/'.join(p) for p in pos_tags]\n",
+        "unigram"
+      ],
+      "execution_count": 13,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "['밤하늘/NNG', '에/JKM', '별/NNG', '이/JKS', '반짝이/VV', 'ㄴ다/EFN']"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 13
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "8D9FLNVKnRyJ",
+        "outputId": "ce0f0cbb-d5f0-4c9b-d5d0-9a9198ab25d2"
+      },
+      "source": [
+        "# bigram\n",
+        "bigram = [';'.join(z) for z in zip(unigram, unigram[1:])]\n",
+        "bigram"
+      ],
+      "execution_count": 14,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "['밤하늘/NNG;에/JKM',\n",
+              " '에/JKM;별/NNG',\n",
+              " '별/NNG;이/JKS',\n",
+              " '이/JKS;반짝이/VV',\n",
+              " '반짝이/VV;ㄴ다/EFN']"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 14
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "fGUfdIa7nRyJ",
+        "outputId": "85eab6d4-b20a-4e81-8068-f0f41736f444"
+      },
+      "source": [
+        "# trigram\n",
+        "trigram = [';'.join(z) for z in zip(*[unigram[i:] for i in range(3)])]\n",
+        "trigram"
+      ],
+      "execution_count": 15,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "['밤하늘/NNG;에/JKM;별/NNG',\n",
+              " '에/JKM;별/NNG;이/JKS',\n",
+              " '별/NNG;이/JKS;반짝이/VV',\n",
+              " '이/JKS;반짝이/VV;ㄴ다/EFN']"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 15
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "SplI3tN8nRyK"
+      },
+      "source": [
+        "# polarity 점수\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 237
+        },
+        "id": "VWWSXdTQnRyK",
+        "outputId": "94c53903-f1cb-4703-db68-8a07a36ee542"
+      },
+      "source": [
+        "polarity_dic.head()"
+      ],
+      "execution_count": 16,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "                  freq  COMP  NEG  NEUT  None  POS max.value  max.prop\n",
+              "ngram                                                                 \n",
+              "가*/JKS               1   0.0  0.0   0.0   0.0  1.0       POS       1.0\n",
+              "가*/JKS;있/VV          1   0.0  0.0   0.0   0.0  1.0       POS       1.0\n",
+              "가*/JKS;있/VV;었/EP     1   0.0  0.0   0.0   0.0  1.0       POS       1.0\n",
+              "가*/VV                3   0.0  0.0   0.0   0.0  1.0       POS       1.0\n",
+              "가*/VV;ㄴ다*/EF         1   0.0  0.0   0.0   0.0  1.0       POS       1.0"
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-7b9681e9-c105-4933-87e2-fd0b9ac2c984\">\n",
+              "    <div class=\"colab-df-container\">\n",
+              "      <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>freq</th>\n",
+              "      <th>COMP</th>\n",
+              "      <th>NEG</th>\n",
+              "      <th>NEUT</th>\n",
+              "      <th>None</th>\n",
+              "      <th>POS</th>\n",
+              "      <th>max.value</th>\n",
+              "      <th>max.prop</th>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>ngram</th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>가*/JKS</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>1.0</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가*/JKS;있/VV</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>1.0</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가*/JKS;있/VV;었/EP</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>1.0</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가*/VV</th>\n",
+              "      <td>3</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>1.0</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>가*/VV;ㄴ다*/EF</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>0.0</td>\n",
+              "      <td>1.0</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.0</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>\n",
+              "      <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-7b9681e9-c105-4933-87e2-fd0b9ac2c984')\"\n",
+              "              title=\"Convert this dataframe to an interactive table.\"\n",
+              "              style=\"display:none;\">\n",
+              "        \n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\"viewBox=\"0 0 24 24\"\n",
+              "       width=\"24px\">\n",
+              "    <path d=\"M0 0h24v24H0V0z\" fill=\"none\"/>\n",
+              "    <path d=\"M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z\"/><path d=\"M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z\"/>\n",
+              "  </svg>\n",
+              "      </button>\n",
+              "      \n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      flex-wrap:wrap;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "      <script>\n",
+              "        const buttonEl =\n",
+              "          document.querySelector('#df-7b9681e9-c105-4933-87e2-fd0b9ac2c984 button.colab-df-convert');\n",
+              "        buttonEl.style.display =\n",
+              "          google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "        async function convertToInteractive(key) {\n",
+              "          const element = document.querySelector('#df-7b9681e9-c105-4933-87e2-fd0b9ac2c984');\n",
+              "          const dataTable =\n",
+              "            await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                     [key], {});\n",
+              "          if (!dataTable) return;\n",
+              "\n",
+              "          const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "            '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "            + ' to learn more about interactive tables.';\n",
+              "          element.innerHTML = '';\n",
+              "          dataTable['output_type'] = 'display_data';\n",
+              "          await google.colab.output.renderOutput(dataTable, element);\n",
+              "          const docLink = document.createElement('div');\n",
+              "          docLink.innerHTML = docLinkHtml;\n",
+              "          element.appendChild(docLink);\n",
+              "        }\n",
+              "      </script>\n",
+              "    </div>\n",
+              "  </div>\n",
+              "  "
+            ]
+          },
+          "metadata": {},
+          "execution_count": 16
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "rcRKX90cnRyL",
+        "outputId": "a3cab070-f6ae-4172-d9b5-bb4a7d898059"
+      },
+      "source": [
+        "unigram"
+      ],
+      "execution_count": 17,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "['밤하늘/NNG', '에/JKM', '별/NNG', '이/JKS', '반짝이/VV', 'ㄴ다/EFN']"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 17
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 175
+        },
+        "id": "WaCNLIi7nRyL",
+        "outputId": "65289c7f-85ca-466d-d4f9-cac6c894c8f4"
+      },
+      "source": [
+        "cond = polarity_dic.index.isin(unigram)\n",
+        "polarity_dic.loc[cond]"
+      ],
+      "execution_count": 18,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "        freq      COMP       NEG      NEUT      None       POS max.value  \\\n",
+              "ngram                                                                      \n",
+              "반짝이/VV     2  0.000000  0.000000  0.000000  0.000000  1.000000       POS   \n",
+              "별/NNG      1  0.000000  0.000000  0.000000  0.000000  1.000000       POS   \n",
+              "이/JKS    227  0.030837  0.440529  0.088106  0.008811  0.431718       NEG   \n",
+              "\n",
+              "        max.prop  \n",
+              "ngram             \n",
+              "반짝이/VV  1.000000  \n",
+              "별/NNG   1.000000  \n",
+              "이/JKS   0.440529  "
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-5feb6385-2808-4426-bf52-f5a7cc641edd\">\n",
+              "    <div class=\"colab-df-container\">\n",
+              "      <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>freq</th>\n",
+              "      <th>COMP</th>\n",
+              "      <th>NEG</th>\n",
+              "      <th>NEUT</th>\n",
+              "      <th>None</th>\n",
+              "      <th>POS</th>\n",
+              "      <th>max.value</th>\n",
+              "      <th>max.prop</th>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>ngram</th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>반짝이/VV</th>\n",
+              "      <td>2</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>별/NNG</th>\n",
+              "      <td>1</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>0.000000</td>\n",
+              "      <td>1.000000</td>\n",
+              "      <td>POS</td>\n",
+              "      <td>1.000000</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>이/JKS</th>\n",
+              "      <td>227</td>\n",
+              "      <td>0.030837</td>\n",
+              "      <td>0.440529</td>\n",
+              "      <td>0.088106</td>\n",
+              "      <td>0.008811</td>\n",
+              "      <td>0.431718</td>\n",
+              "      <td>NEG</td>\n",
+              "      <td>0.440529</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>\n",
+              "      <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-5feb6385-2808-4426-bf52-f5a7cc641edd')\"\n",
+              "              title=\"Convert this dataframe to an interactive table.\"\n",
+              "              style=\"display:none;\">\n",
+              "        \n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\"viewBox=\"0 0 24 24\"\n",
+              "       width=\"24px\">\n",
+              "    <path d=\"M0 0h24v24H0V0z\" fill=\"none\"/>\n",
+              "    <path d=\"M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z\"/><path d=\"M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z\"/>\n",
+              "  </svg>\n",
+              "      </button>\n",
+              "      \n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      flex-wrap:wrap;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "      <script>\n",
+              "        const buttonEl =\n",
+              "          document.querySelector('#df-5feb6385-2808-4426-bf52-f5a7cc641edd button.colab-df-convert');\n",
+              "        buttonEl.style.display =\n",
+              "          google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "        async function convertToInteractive(key) {\n",
+              "          const element = document.querySelector('#df-5feb6385-2808-4426-bf52-f5a7cc641edd');\n",
+              "          const dataTable =\n",
+              "            await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                     [key], {});\n",
+              "          if (!dataTable) return;\n",
+              "\n",
+              "          const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "            '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "            + ' to learn more about interactive tables.';\n",
+              "          element.innerHTML = '';\n",
+              "          dataTable['output_type'] = 'display_data';\n",
+              "          await google.colab.output.renderOutput(dataTable, element);\n",
+              "          const docLink = document.createElement('div');\n",
+              "          docLink.innerHTML = docLinkHtml;\n",
+              "          element.appendChild(docLink);\n",
+              "        }\n",
+              "      </script>\n",
+              "    </div>\n",
+              "  </div>\n",
+              "  "
+            ]
+          },
+          "metadata": {},
+          "execution_count": 18
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ZfUTjr1cnRyL",
+        "outputId": "a0daaed8-6c79-4d28-ee69-c8c636407104"
+      },
+      "source": [
+        "# polarity score = (p-n) / (p+n)\n",
+        "polarity_dic.loc[cond, :].sum()"
+      ],
+      "execution_count": 19,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "freq               230\n",
+              "COMP          0.030837\n",
+              "NEG           0.440529\n",
+              "NEUT          0.088106\n",
+              "None          0.008811\n",
+              "POS           2.431718\n",
+              "max.value    POSPOSNEG\n",
+              "max.prop      2.440529\n",
+              "dtype: object"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 19
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ipR5ZKWFnRyM",
+        "outputId": "20e38160-b0ea-4684-8304-d2a520087348"
+      },
+      "source": [
+        "# polarity score = (p-n) / (p+n)\n",
+        "s = polarity_dic.loc[cond, :].sum()\n",
+        "\n",
+        "p_score = (s['POS'] - s['NEG']) / (s['POS'] + s['NEG'])\n",
+        "p_score"
+      ],
+      "execution_count": 20,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "0.6932515339901012"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 20
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "hrVmTSkbnRyM",
+        "outputId": "111c4099-a973-44a0-a191-cf4823a93449"
+      },
+      "source": [
+        "# bigram, trigram 에 대해서도 연산\n",
+        "# (등장 확률은 낮아 예외 발생 가능성이 높다)\n",
+        "\n",
+        "try:\n",
+        "    cond = polarity_dic.index.isin(bigram)\n",
+        "    polarity_dic.loc[bigram, :].sum()\n",
+        "except KeyError as e:\n",
+        "    print(e)\n",
+        "\n",
+        "try:\n",
+        "    cond = polarity_dic.index.isin(trigram)\n",
+        "    polarity_dic.loc[trigram, :].sum()\n",
+        "except KeyError as e:\n",
+        "    print(e)"
+      ],
+      "execution_count": 21,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\"None of [Index(['밤하늘/NNG;에/JKM', '에/JKM;별/NNG', '별/NNG;이/JKS', '이/JKS;반짝이/VV',\\n       '반짝이/VV;ㄴ다/EFN'],\\n      dtype='object', name='ngram')] are in the [index]\"\n",
+            "\"None of [Index(['밤하늘/NNG;에/JKM;별/NNG', '에/JKM;별/NNG;이/JKS', '별/NNG;이/JKS;반짝이/VV',\\n       '이/JKS;반짝이/VV;ㄴ다/EFN'],\\n      dtype='object', name='ngram')] are in the [index]\"\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "qtpNy8janRyN"
+      },
+      "source": [
+        "# 함수로 만들기"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "mHE8Wn6anRyN"
+      },
+      "source": [
+        "# 문장을 주면 형태소 분석하여\n",
+        "\n",
+        "import pandas as pd\n",
+        "from konlpy.tag import Kkma\n",
+        "\n",
+        "engine = Kkma()\n",
+        "polarity_dic = pd.read_csv('corpus/kosac/polarity.csv')\n",
+        "polarity_dic.set_index('ngram', inplace=True)\n",
+        "\n",
+        "def polarity_score(text):\n",
+        "    pos_tags = engine.pos(text)\n",
+        "\n",
+        "    # n-gram\n",
+        "    unigram = ['/'.join(p) for p in pos_tags]\n",
+        "    bigram = [';'.join(z) for z in zip(unigram, unigram[1:])]\n",
+        "    trigram = [';'.join(z) for z in zip(*[unigram[i:] for i in range(3)])]\n",
+        "\n",
+        "    p_score = 0\n",
+        "    # polarity score = (p-n) / (p+n)\n",
+        "    for ngram in [unigram, bigram, trigram]:\n",
+        "        cond = polarity_dic.index.isin(ngram)\n",
+        "        s = polarity_dic.loc[cond, :].sum()\n",
+        "        if s['POS'] + s['NEG'] > 0: # div 0 방지\n",
+        "            p_score += (s['POS'] - s['NEG']) / (s['POS'] + s['NEG'])\n",
+        "    return p_score"
+      ],
+      "execution_count": 22,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "z_lZvTXAnRyO",
+        "outputId": "e966118e-e71c-4bd8-e056-ca94b0024e18"
+      },
+      "source": [
+        "text = '금융투자업계에 따르면 지난주 1분기 실적을 발표한 상장 기업 중' \\\n",
+        "        '상당수가 시장 전망치를 뛰어넘는 양호한 실적을 내놓은 것으로 나타났다'\n",
+        "polarity_score(text)"
+      ],
+      "execution_count": 23,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "2.197878989704434"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 23
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ecrOXLdDnRyO",
+        "outputId": "643572b9-1213-4f20-91c5-5eb7f0113e80"
+      },
+      "source": [
+        "text = '무역협상이 재개되자마자 돌발 악재가 발생하면서 세계 각국 증시가 줄줄이 하락했다'\n",
+        "polarity_score(text)"
+      ],
+      "execution_count": 24,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "-0.9634391687638908"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 24
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "CbkwjCNtnRyP"
+      },
+      "source": [
+        "**2018-2023 [FinanceData.KR]()**"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2320 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "display_name": "TF-GPU",
+      "language": "python",
+      "name": "tf-gpu"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.6.7"
+    },
+    "colab": {
+      "name": "텍스트 마이닝 - 네이버 영화 평점 리뷰",
+      "provenance": [],
+      "collapsed_sections": [
+        "K5gRZP4jrouR"
+      ],
+      "include_colab_link": true
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/gist/FinanceData/78d260f25429838767fe212cc3399879/notebook.ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "sVxEX1H8rotu"
+      },
+      "source": [
+        "# 네이버 영화 평점 리뷰\n",
+        "\n",
+        "https://movie.naver.com/movie/point/af/list.nhn\n",
+        "\n",
+        "<img width=\"50%\" src=\"https://i.imgur.com/PypXVbW.png\" >\n",
+        "\n",
+        "**2018-2021 [FinanceData.KR](FinanceData.KR)**"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "-SGPjLJTrotw"
+      },
+      "source": [
+        "# Naver sentiment movie corpus v1.0\n",
+        "\n",
+        "http://github.com/e9t/nsmc (크기: 19MB)\n",
+        "    \n",
+        "* 영화 당 100개의 140자평(이하 '리뷰')을 초과하지 않음\n",
+        "* 총 20만 개 리뷰\n",
+        "* 긍정적인 리뷰는 1, 부정적인 리뷰는 0으로 labeling\n",
+        "* ratings_train.txt: 15만, ratings_test.txt: 5만\n",
+        "* 긍정/부정 리뷰의 비율을 동일하게 샘플링 (i.e., random guess yields 50% accuracy)\n",
+        "* 중립 리뷰는 포함하지 않음    "
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "roPWu4i7rotx"
+      },
+      "source": [
+        "# 데이터 가져오기\n",
+        "\n",
+        "https://github.com/e9t/nsmc\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "GsD-1H5Vroty",
+        "outputId": "180f8eca-e2fb-4242-9a33-ca71e7983be0"
+      },
+      "source": [
+        "! git clone https://github.com/e9t/nsmc.git"
+      ],
+      "execution_count": 1,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "fatal: destination path 'nsmc' already exists and is not an empty directory.\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "GQzm2wdzrot0",
+        "outputId": "c308b813-d81e-49ce-891d-b2642bd78f40"
+      },
+      "source": [
+        "! ls -lh nsmc/ratings*"
+      ],
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "-rw-r--r-- 1 root root 4.7M May 28 11:16 nsmc/ratings_test.txt\n",
+            "-rw-r--r-- 1 root root  14M May 28 11:16 nsmc/ratings_train.txt\n",
+            "-rw-r--r-- 1 root root  19M May 28 11:16 nsmc/ratings.txt\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "ipdpMAzkrot1"
+      },
+      "source": [
+        "# 전체 데이터 살펴보기"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "ZIxgjkSMrot1",
+        "outputId": "3aae4d41-e42d-43ab-9aee-9b7d97a13fc4"
+      },
+      "source": [
+        "! head nsmc/ratings.txt "
+      ],
+      "execution_count": 3,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "id\tdocument\tlabel\n",
+            "8112052\t어릴때보고 지금다시봐도 재밌어요ㅋㅋ\t1\n",
+            "8132799\t디자인을 배우는 학생으로, 외국디자이너와 그들이 일군 전통을 통해 발전해가는 문화산업이 부러웠는데. 사실 우리나라에서도 그 어려운시절에 끝까지 열정을 지킨 노라노 같은 전통이있어 저와 같은 사람들이 꿈을 꾸고 이뤄나갈 수 있다는 것에 감사합니다.\t1\n",
+            "4655635\t폴리스스토리 시리즈는 1부터 뉴까지 버릴께 하나도 없음.. 최고.\t1\n",
+            "9251303\t와.. 연기가 진짜 개쩔구나.. 지루할거라고 생각했는데 몰입해서 봤다.. 그래 이런게 진짜 영화지\t1\n",
+            "10067386\t안개 자욱한 밤하늘에 떠 있는 초승달 같은 영화.\t1\n",
+            "2190435\t사랑을 해본사람이라면 처음부터 끝까지 웃을수 있는영화\t1\n",
+            "9279041\t완전 감동입니다 다시봐도 감동\t1\n",
+            "7865729\t개들의 전쟁2 나오나요? 나오면 1빠로 보고 싶음\t1\n",
+            "7477618\t굿\t1\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "rLFUPCsorot2",
+        "outputId": "8a25b656-34a3-4fde-e537-27808d91309a"
+      },
+      "source": [
+        "! head nsmc/ratings_train.txt"
+      ],
+      "execution_count": 4,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "id\tdocument\tlabel\n",
+            "9976970\t아 더빙.. 진짜 짜증나네요 목소리\t0\n",
+            "3819312\t흠...포스터보고 초딩영화줄....오버연기조차 가볍지 않구나\t1\n",
+            "10265843\t너무재밓었다그래서보는것을추천한다\t0\n",
+            "9045019\t교도소 이야기구먼 ..솔직히 재미는 없다..평점 조정\t0\n",
+            "6483659\t사이몬페그의 익살스런 연기가 돋보였던 영화!스파이더맨에서 늙어보이기만 했던 커스틴 던스트가 너무나도 이뻐보였다\t1\n",
+            "5403919\t막 걸음마 뗀 3세부터 초등학교 1학년생인 8살용영화.ㅋㅋㅋ...별반개도 아까움.\t0\n",
+            "7797314\t원작의 긴장감을 제대로 살려내지못했다.\t0\n",
+            "9443947\t별 반개도 아깝다 욕나온다 이응경 길용우 연기생활이몇년인지..정말 발로해도 그것보단 낫겟다 납치.감금만반복반복..이드라마는 가족도없다 연기못하는사람만모엿네\t0\n",
+            "7156791\t액션이 없는데도 재미 있는 몇안되는 영화\t1\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "jxDcddhPz4ej"
+      },
+      "source": [
+        "아래 셀을 실행하고, 런타임 재시작 (메뉴의 \"런타임 / 런타임 다시 시작...\") 후\n",
+        "다시 한번 아래 셀을 실행합니다."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 244
+        },
+        "id": "ap_9F8Js0PaC",
+        "outputId": "33c8c9fa-add6-4fcb-9f19-5e1e94737d70"
+      },
+      "source": [
+        "# 한글 폰트 설치와 폰트 캐시 재설정\n",
+        "!apt-get install -y -qq fonts-nanum\n",
+        "!rm -rf ~/.cache/matplotlib/*\n",
+        "\n",
+        "# matplotlib 설정\n",
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "plt.rcParams[\"font.family\"] = 'NanumBarunGothic'\n",
+        "plt.rcParams[\"axes.grid\"] = True\n",
+        "plt.rcParams[\"figure.figsize\"] = (10,3)\n",
+        "plt.rcParams[\"axes.formatter.useoffset\"] = False\n",
+        "plt.rcParams['axes.unicode_minus'] = False\n",
+        "plt.rcParams[\"axes.formatter.limits\"] = -10000, 10000\n",
+        "\n",
+        "plt.title('한글 테스트')"
+      ],
+      "execution_count": 5,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "Text(0.5, 1.0, '한글 테스트')"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 5
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "image/png": "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\n",
+            "text/plain": [
+              "<Figure size 720x216 with 1 Axes>"
+            ]
+          },
+          "metadata": {
+            "tags": [],
+            "needs_background": "light"
+          }
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "QSqa8LYXtnNU"
+      },
+      "source": [
+        "%%time\n",
+        "# Mecab 설치 (약 3분 30초 소요)\n",
+        "!apt-get update\n",
+        "!apt-get install g++ openjdk-8-jdk \n",
+        "!pip3 install konlpy JPype1-py3\n",
+        "!bash <(curl -s https://raw.githubusercontent.com/konlpy/konlpy/master/scripts/mecab.sh)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "m3s3BGxEsNnm"
+      },
+      "source": [
+        "!pip -q install konlpy"
+      ],
+      "execution_count": 7,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "66b0ePG2rot4"
+      },
+      "source": [
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import konlpy\n",
+        "from konlpy.tag import Okt, Mecab"
+      ],
+      "execution_count": 8,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 358
+        },
+        "id": "eALHUexwrot5",
+        "outputId": "1f1b67c0-7c3a-4783-bfcd-c5d3b2c48167"
+      },
+      "source": [
+        "# 데이터 읽어오기 (전체)\n",
+        "\n",
+        "ratings = pd.read_csv('nsmc/ratings.txt', delimiter='\\t')\n",
+        "ratings.head(10)"
+      ],
+      "execution_count": 9,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>id</th>\n",
+              "      <th>document</th>\n",
+              "      <th>label</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>8112052</td>\n",
+              "      <td>어릴때보고 지금다시봐도 재밌어요ㅋㅋ</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>8132799</td>\n",
+              "      <td>디자인을 배우는 학생으로, 외국디자이너와 그들이 일군 전통을 통해 발전해가는 문화산...</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>4655635</td>\n",
+              "      <td>폴리스스토리 시리즈는 1부터 뉴까지 버릴께 하나도 없음.. 최고.</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>9251303</td>\n",
+              "      <td>와.. 연기가 진짜 개쩔구나.. 지루할거라고 생각했는데 몰입해서 봤다.. 그래 이런...</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>10067386</td>\n",
+              "      <td>안개 자욱한 밤하늘에 떠 있는 초승달 같은 영화.</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>5</th>\n",
+              "      <td>2190435</td>\n",
+              "      <td>사랑을 해본사람이라면 처음부터 끝까지 웃을수 있는영화</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>6</th>\n",
+              "      <td>9279041</td>\n",
+              "      <td>완전 감동입니다 다시봐도 감동</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>7</th>\n",
+              "      <td>7865729</td>\n",
+              "      <td>개들의 전쟁2 나오나요? 나오면 1빠로 보고 싶음</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>8</th>\n",
+              "      <td>7477618</td>\n",
+              "      <td>굿</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>9</th>\n",
+              "      <td>9250537</td>\n",
+              "      <td>바보가 아니라 병 쉰 인듯</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "         id                                           document  label\n",
+              "0   8112052                                어릴때보고 지금다시봐도 재밌어요ㅋㅋ      1\n",
+              "1   8132799  디자인을 배우는 학생으로, 외국디자이너와 그들이 일군 전통을 통해 발전해가는 문화산...      1\n",
+              "2   4655635               폴리스스토리 시리즈는 1부터 뉴까지 버릴께 하나도 없음.. 최고.      1\n",
+              "3   9251303  와.. 연기가 진짜 개쩔구나.. 지루할거라고 생각했는데 몰입해서 봤다.. 그래 이런...      1\n",
+              "4  10067386                        안개 자욱한 밤하늘에 떠 있는 초승달 같은 영화.      1\n",
+              "5   2190435                      사랑을 해본사람이라면 처음부터 끝까지 웃을수 있는영화      1\n",
+              "6   9279041                                   완전 감동입니다 다시봐도 감동      1\n",
+              "7   7865729                        개들의 전쟁2 나오나요? 나오면 1빠로 보고 싶음      1\n",
+              "8   7477618                                                  굿      1\n",
+              "9   9250537                                     바보가 아니라 병 쉰 인듯      1"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 9
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 358
+        },
+        "id": "86zw53zurot6",
+        "outputId": "8e338604-1d47-4f8c-be9c-94d958374362"
+      },
+      "source": [
+        "# 데이터 읽어오기 (학습용)\n",
+        "\n",
+        "train = pd.read_csv('nsmc/ratings_train.txt', delimiter='\\t')\n",
+        "train.head(10)"
+      ],
+      "execution_count": 10,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>id</th>\n",
+              "      <th>document</th>\n",
+              "      <th>label</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>9976970</td>\n",
+              "      <td>아 더빙.. 진짜 짜증나네요 목소리</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>3819312</td>\n",
+              "      <td>흠...포스터보고 초딩영화줄....오버연기조차 가볍지 않구나</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>10265843</td>\n",
+              "      <td>너무재밓었다그래서보는것을추천한다</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>9045019</td>\n",
+              "      <td>교도소 이야기구먼 ..솔직히 재미는 없다..평점 조정</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>6483659</td>\n",
+              "      <td>사이몬페그의 익살스런 연기가 돋보였던 영화!스파이더맨에서 늙어보이기만 했던 커스틴 ...</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>5</th>\n",
+              "      <td>5403919</td>\n",
+              "      <td>막 걸음마 뗀 3세부터 초등학교 1학년생인 8살용영화.ㅋㅋㅋ...별반개도 아까움.</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>6</th>\n",
+              "      <td>7797314</td>\n",
+              "      <td>원작의 긴장감을 제대로 살려내지못했다.</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>7</th>\n",
+              "      <td>9443947</td>\n",
+              "      <td>별 반개도 아깝다 욕나온다 이응경 길용우 연기생활이몇년인지..정말 발로해도 그것보단...</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>8</th>\n",
+              "      <td>7156791</td>\n",
+              "      <td>액션이 없는데도 재미 있는 몇안되는 영화</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>9</th>\n",
+              "      <td>5912145</td>\n",
+              "      <td>왜케 평점이 낮은건데? 꽤 볼만한데.. 헐리우드식 화려함에만 너무 길들여져 있나?</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "         id                                           document  label\n",
+              "0   9976970                                아 더빙.. 진짜 짜증나네요 목소리      0\n",
+              "1   3819312                  흠...포스터보고 초딩영화줄....오버연기조차 가볍지 않구나      1\n",
+              "2  10265843                                  너무재밓었다그래서보는것을추천한다      0\n",
+              "3   9045019                      교도소 이야기구먼 ..솔직히 재미는 없다..평점 조정      0\n",
+              "4   6483659  사이몬페그의 익살스런 연기가 돋보였던 영화!스파이더맨에서 늙어보이기만 했던 커스틴 ...      1\n",
+              "5   5403919      막 걸음마 뗀 3세부터 초등학교 1학년생인 8살용영화.ㅋㅋㅋ...별반개도 아까움.      0\n",
+              "6   7797314                              원작의 긴장감을 제대로 살려내지못했다.      0\n",
+              "7   9443947  별 반개도 아깝다 욕나온다 이응경 길용우 연기생활이몇년인지..정말 발로해도 그것보단...      0\n",
+              "8   7156791                             액션이 없는데도 재미 있는 몇안되는 영화      1\n",
+              "9   5912145      왜케 평점이 낮은건데? 꽤 볼만한데.. 헐리우드식 화려함에만 너무 길들여져 있나?      1"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 10
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 358
+        },
+        "id": "ncO-wAO0rot7",
+        "outputId": "844a25ca-af51-4c4b-f8d9-7adc3927b462"
+      },
+      "source": [
+        "# 데이터 읽어오기 (테스트용)\n",
+        "\n",
+        "test = pd.read_csv('nsmc/ratings_test.txt', delimiter='\\t')\n",
+        "test.head(10)"
+      ],
+      "execution_count": 11,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>id</th>\n",
+              "      <th>document</th>\n",
+              "      <th>label</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>6270596</td>\n",
+              "      <td>굳 ㅋ</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>9274899</td>\n",
+              "      <td>GDNTOPCLASSINTHECLUB</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>8544678</td>\n",
+              "      <td>뭐야 이 평점들은.... 나쁘진 않지만 10점 짜리는 더더욱 아니잖아</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>6825595</td>\n",
+              "      <td>지루하지는 않은데 완전 막장임... 돈주고 보기에는....</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>6723715</td>\n",
+              "      <td>3D만 아니었어도 별 다섯 개 줬을텐데.. 왜 3D로 나와서 제 심기를 불편하게 하죠??</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>5</th>\n",
+              "      <td>7898805</td>\n",
+              "      <td>음악이 주가 된, 최고의 음악영화</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>6</th>\n",
+              "      <td>6315043</td>\n",
+              "      <td>진정한 쓰레기</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>7</th>\n",
+              "      <td>6097171</td>\n",
+              "      <td>마치 미국애니에서 튀어나온듯한 창의력없는 로봇디자인부터가,고개를 젖게한다</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>8</th>\n",
+              "      <td>8932678</td>\n",
+              "      <td>갈수록 개판되가는 중국영화 유치하고 내용없음 폼잡다 끝남 말도안되는 무기에 유치한c...</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>9</th>\n",
+              "      <td>6242223</td>\n",
+              "      <td>이별의 아픔뒤에 찾아오는 새로운 인연의 기쁨 But, 모든 사람이 그렇지는 않네..</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "        id                                           document  label\n",
+              "0  6270596                                                굳 ㅋ      1\n",
+              "1  9274899                               GDNTOPCLASSINTHECLUB      0\n",
+              "2  8544678             뭐야 이 평점들은.... 나쁘진 않지만 10점 짜리는 더더욱 아니잖아      0\n",
+              "3  6825595                   지루하지는 않은데 완전 막장임... 돈주고 보기에는....      0\n",
+              "4  6723715  3D만 아니었어도 별 다섯 개 줬을텐데.. 왜 3D로 나와서 제 심기를 불편하게 하죠??      0\n",
+              "5  7898805                                 음악이 주가 된, 최고의 음악영화      1\n",
+              "6  6315043                                            진정한 쓰레기      0\n",
+              "7  6097171           마치 미국애니에서 튀어나온듯한 창의력없는 로봇디자인부터가,고개를 젖게한다      0\n",
+              "8  8932678  갈수록 개판되가는 중국영화 유치하고 내용없음 폼잡다 끝남 말도안되는 무기에 유치한c...      0\n",
+              "9  6242223     이별의 아픔뒤에 찾아오는 새로운 인연의 기쁨 But, 모든 사람이 그렇지는 않네..      1"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 11
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "pYEcO0Isrot8"
+      },
+      "source": [
+        "# 결측치(NaN) 처리"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 296
+        },
+        "id": "sgP5rnTxrot9",
+        "outputId": "9767455e-3a76-4306-8b6f-17df19881506"
+      },
+      "source": [
+        "# NaN을 포함하는 리뷰가 있는지 확인\n",
+        "ratings[ratings.isnull().any(axis=1)]"
+      ],
+      "execution_count": 12,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>id</th>\n",
+              "      <th>document</th>\n",
+              "      <th>label</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>46471</th>\n",
+              "      <td>6369843</td>\n",
+              "      <td>NaN</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>60735</th>\n",
+              "      <td>511097</td>\n",
+              "      <td>NaN</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>77665</th>\n",
+              "      <td>2172111</td>\n",
+              "      <td>NaN</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>84098</th>\n",
+              "      <td>402110</td>\n",
+              "      <td>NaN</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>127017</th>\n",
+              "      <td>5942978</td>\n",
+              "      <td>NaN</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>172375</th>\n",
+              "      <td>5026896</td>\n",
+              "      <td>NaN</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>173526</th>\n",
+              "      <td>1034280</td>\n",
+              "      <td>NaN</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>197279</th>\n",
+              "      <td>1034283</td>\n",
+              "      <td>NaN</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "             id document  label\n",
+              "46471   6369843      NaN      1\n",
+              "60735    511097      NaN      1\n",
+              "77665   2172111      NaN      1\n",
+              "84098    402110      NaN      1\n",
+              "127017  5942978      NaN      0\n",
+              "172375  5026896      NaN      0\n",
+              "173526  1034280      NaN      0\n",
+              "197279  1034283      NaN      0"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 12
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "5Ra6rH4_rot-"
+      },
+      "source": [
+        "# NaN 포함 row 삭제\n",
+        "ratings = ratings.dropna()\n",
+        "train = train.dropna()\n",
+        "test = test.dropna()"
+      ],
+      "execution_count": 13,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 36
+        },
+        "id": "lh5Kxa2Frot-",
+        "outputId": "2bace6c8-168f-49e1-d930-7571570bc4eb"
+      },
+      "source": [
+        "doc = ratings['document'][0]\n",
+        "doc"
+      ],
+      "execution_count": 14,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            },
+            "text/plain": [
+              "'어릴때보고 지금다시봐도 재밌어요ㅋㅋ'"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 14
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "vwBfVLVxrot_"
+      },
+      "source": [
+        "# Tokineizing\n",
+        "\n",
+        "형태소 분석기를 사용하여"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "swsQp2-4rouA",
+        "outputId": "2d497701-c49d-4ffa-cb33-80d155e78eba"
+      },
+      "source": [
+        "from konlpy.tag import Mecab\n",
+        "\n",
+        "mecab = Mecab()\n",
+        "\n",
+        "print(mecab.pos(doc))"
+      ],
+      "execution_count": 15,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "[('어릴', 'VA+ETM'), ('때', 'NNG'), ('보', 'VV'), ('고', 'EC'), ('지금', 'MAG'), ('다시', 'MAG'), ('봐도', 'VV+EC'), ('재밌', 'VA'), ('어요', 'EF'), ('ㅋㅋ', 'IC')]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "ISOB7UbVrouB",
+        "outputId": "6e434e56-db50-44ba-d0dd-339b1e7cb65f"
+      },
+      "source": [
+        "from konlpy.tag import Mecab\n",
+        "\n",
+        "mecab = Mecab()\n",
+        "\n",
+        "print(mecab.morphs(doc))"
+      ],
+      "execution_count": 16,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "['어릴', '때', '보', '고', '지금', '다시', '봐도', '재밌', '어요', 'ㅋㅋ']\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Eb9OtuOlrouB"
+      },
+      "source": [
+        "corpus_tokens = []\n",
+        "for doc in ratings['document']:\n",
+        "    corpus_tokens += mecab.morphs(doc)"
+      ],
+      "execution_count": 17,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "VEgJQNnirouC",
+        "outputId": "9a83be2e-8585-4fe4-912d-46159df166da"
+      },
+      "source": [
+        "print(corpus_tokens[:200])"
+      ],
+      "execution_count": 18,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "['어릴', '때', '보', '고', '지금', '다시', '봐도', '재밌', '어요', 'ㅋㅋ', '디자인', '을', '배우', '는', '학생', '으로', ',', '외국', '디자이너', '와', '그', '들', '이', '일군', '전통', '을', '통해', '발전', '해', '가', '는', '문화', '산업', '이', '부러웠', '는데', '.', '사실', '우리', '나라', '에서', '도', '그', '어려운', '시절', '에', '끝', '까지', '열정', '을', '지킨', '노라노', '같', '은', '전통', '이', '있', '어', '저', '와', '같', '은', '사람', '들', '이', '꿈', '을', '꾸', '고', '이뤄나갈', '수', '있', '다는', '것', '에', '감사', '합니다', '.', '폴리스', '스토리', '시리즈', '는', '1', '부터', '뉴', '까지', '버릴', '께', '하나', '도', '없', '음', '.', '.', '최고', '.', '와', '.', '.', '연기', '가', '진짜', '개', '쩔', '구나', '.', '.', '지루', '할거', '라고', '생각', '했', '는데', '몰입', '해서', '봤', '다', '.', '.', '그래', '이런', '게', '진짜', '영화', '지', '안개', '자욱', '한', '밤하늘', '에', '떠', '있', '는', '초승달', '같', '은', '영화', '.', '사랑', '을', '해', '본', '사람', '이', '라면', '처음', '부터', '끝', '까지', '웃', '을', '수', '있', '는', '영화', '완전', '감동', '입니다', '다시', '봐도', '감동', '개', '들', '의', '전쟁', '2', '나오', '나요', '?', '나오', '면', '1', '빠', '로', '보', '고', '싶', '음', '굿', '바보', '가', '아니', '라', '병', '쉰', '인', '듯', '내', '나이', '와', '같', '은', '영화', '를', '지금', '본', '나', '는', '감동', '적']\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "62Y9p2wRrouC"
+      },
+      "source": [
+        "# nltk"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "GGhDJRAerouD"
+      },
+      "source": [
+        "import nltk\n",
+        "\n",
+        "text = nltk.Text(corpus_tokens)"
+      ],
+      "execution_count": 19,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "2lLxWdUyrouD",
+        "outputId": "6b9a7df9-28c2-4ee3-e8ec-a3d251b637c9"
+      },
+      "source": [
+        "len(text.tokens)"
+      ],
+      "execution_count": 20,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "3669526"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 20
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "VCGQp4s9rouE",
+        "outputId": "6b91acee-badd-4f9a-e495-cf8e1973f54e"
+      },
+      "source": [
+        "len(set(text.tokens)) # # of unique tokens"
+      ],
+      "execution_count": 21,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "61494"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 21
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "zzgKhE6NrouE",
+        "outputId": "99efad53-899d-4d57-b696-bbe48a785b2c"
+      },
+      "source": [
+        "text.vocab().most_common(20)"
+      ],
+      "execution_count": 22,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "[('.', 213388),\n",
+              " ('이', 98282),\n",
+              " ('는', 89241),\n",
+              " ('영화', 77225),\n",
+              " ('다', 74327),\n",
+              " ('고', 62899),\n",
+              " ('하', 59401),\n",
+              " ('도', 45533),\n",
+              " ('의', 45038),\n",
+              " ('가', 44603),\n",
+              " ('은', 41583),\n",
+              " ('에', 41290),\n",
+              " ('을', 39805),\n",
+              " ('보', 34200),\n",
+              " ('한', 33710),\n",
+              " ('..', 30585),\n",
+              " ('게', 29833),\n",
+              " (',', 29603),\n",
+              " ('들', 28848),\n",
+              " ('!', 26026)]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 22
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "ortBwclLrouF",
+        "outputId": "16962bd5-dddf-4eb2-c0b3-133ee1722238"
+      },
+      "source": [
+        "text.vocab().most_common()[:-20:-1]"
+      ],
+      "execution_count": 23,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "[('영차', 1),\n",
+              " ('영차영차', 1),\n",
+              " ('해올', 1),\n",
+              " ('보인단', 1),\n",
+              " ('시어스', 1),\n",
+              " ('삐질삐질', 1),\n",
+              " ('재지', 1),\n",
+              " ('ㅠ엠넷의', 1),\n",
+              " ('기울일', 1),\n",
+              " ('떄렸다', 1),\n",
+              " ('acs', 1),\n",
+              " ('으라니', 1),\n",
+              " ('여교', 1),\n",
+              " ('ㅉㅉㅉㅉ한심하다정말', 1),\n",
+              " ('이범학', 1),\n",
+              " ('호곡', 1),\n",
+              " ('영일', 1),\n",
+              " ('끌려온', 1),\n",
+              " ('좋찮', 1)]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 23
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 233
+        },
+        "id": "Ib6MZu8trouF",
+        "outputId": "7768a409-143c-4bf2-dc66-72dde0640416"
+      },
+      "source": [
+        "freq_dist = nltk.FreqDist(text.tokens)\n",
+        "freq_dist.plot(30)"
+      ],
+      "execution_count": 24,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "image/png": "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\n",
+            "text/plain": [
+              "<Figure size 720x216 with 1 Axes>"
+            ]
+          },
+          "metadata": {
+            "tags": [],
+            "needs_background": "light"
+          }
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "zfwL0Sc2rouG",
+        "outputId": "1b949e41-b026-4075-9d31-0f43e94f449a"
+      },
+      "source": [
+        "text.concordance('음악')"
+      ],
+      "execution_count": 25,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Displaying 25 of 1852 matches:\n",
+            " 한다 정말 재 밋 게 봣는대요 어디 서 받 을 수 잇 조 ? 탱고 음악 의 감동 이 밀려온다 . 평생 못 봤 으면 후회 할 뻔 한 따뜻 한\n",
+            " 에 는 초롱 팬 심 으로 봤 는데 갈수록 내용 과 어울리 는 배경 음악 들 이 너무 달달 하 고 보 고 있 으면 행복 해 지 네요 . 완전\n",
+            "' 포 ' 씨 처럼 연말 에 추천 할 만 한 따뜻 한 영화 . 배경 음악 도 참 좋 았 다 한국 사회 의 치부 를 정확 하 게 예언 한 수작\n",
+            ". 좋 아 하 는 영화 목록 에 있 는 작품 인데 , 잔잔 한 배경 음악 을 틀 고 휴식 할 때 처럼 늦 은 밤 켜 놓 고 싶 은 영화 재밌\n",
+            "히 가 드럽 게 안 죽 어 ㅋㅋㅋ ㅋㅋㅋ ㅋㅋㅋ ㅋㅋㅋ ㅋㅋㅋ 영화 음악 이 너무 좋 았 던 것 같 습니다 . 카 엘라인 ~ 난캉 이 니깐 \n",
+            " 무엇 보다 실감 나 는 연기 남 프랑스 의 멋진 배경 과 걸맞 는 음악 은 한층 이 영화 를 빛나 게 했 다 . . 강추 . 겁쟁이 페달 \n",
+            "기분 이 조금 나 아 져서 좋 았 어요 원스 를 뛰어넘 는 최고 의 음악 영화 한국 영화 치고 좋 다 중반 부 까지 진짜 몰입 하 고 봤 는\n",
+            "푼젤 이 겨울 왕국 보다 스토리 에서 는 확실히 우위 에 있 음 . 음악 보다 는 스토리 보 시 는 분 들 은 이 두 개 보 시 길 . 개인\n",
+            " 게 떨어지 는 거 지 기다렸 습니다 태지 형 ^.^ 언제나 좋 은 음악 들려 주 세요 개 쩜 영화 디톡스 하고 는 똑같 네 . .. 사랑 \n",
+            " . ..? 한국인 보다 한국 을 이렇게 잘 이해 할 수 가 . . 음악 을 안다는 분 들 은 꼭 봐야 할 교과서 ! ! 그냥 재미있 었 던\n",
+            " 평점 이 왜 일 케 낮 은 거 지 ? 열정 적 인 춤 ~ 신나 는 음악 ~ Good ~ 저 도 춤 을 출 수 있 다는 용기 를 나눠 주 세\n",
+            " 지 못한 이야기 다 . 불륜 , 배다른 형제 등등 막장 드라마 도 음악 과 역사 안 에서 는 예술 이 될 수 있 다 . 어린 시절 , 겨울\n",
+            " 개 명작 준기 님 너무 짧 게 나와 ㅆ다흐규 몽환 적 인 영상 과 음악 . 너무나 예쁜 이나영 에 통통 튀 는 파란색 까지 ! 마지막 그 \n",
+            "되 어 있 나 봐요 ㅎㅎ 성우 도 좋 고 , 작화 도 좋 았 다 . 음악 도 좋 고 , 역시 신카이 마코토 였 다고 느꼈 다 . 최고 의 엔\n",
+            "의 미친 연기 에 감탄 . 불편 한 장면 에서 흘러나오 는 경쾌 한 음악 이 정말 구역 질 나 도록 싫 다 . 그만큼 연출 을 잘 했 다 .\n",
+            "렇게 로멘 틱 할 수 도 있 구나 . . 새삼 느꼈 구요 ♥ 컨트리 음악 에 . . 영상미 에 . . 로 멘스 에 전혀 어색 함 없 던 스릴\n",
+            " 깬 영화 달콤 한 초콜릿 과 변화 영화 가 전달 하 는 이야기 와 음악 이 정말 마음 에 들 고 감동 입니다 . 마지막 엔딩 부분 최고 또\n",
+            "화 . 굳 굳 혼자 비디오 로 보 면서 감동 했 던 기억 이 . . 음악 도 좋 고 . . 이 영화 는 영화 보다 도 음악 으로 먼저 접했 \n",
+            " 기억 이 . . 음악 도 좋 고 . . 이 영화 는 영화 보다 도 음악 으로 먼저 접했 습니다 제 가 6 ~ 7 살 쯤 에 우리 집 에 특\n",
+            " 보여 주 지만 안타까운 결말 이 . 잔잔히 울리 는 독특 한 배경 음악 도 영화 의 분위기 를 잘 받쳐 줌 . 역시 케빈 스페이시 가 나오\n",
+            " 뮤지컬 을 좋아하 는 사람 이 라면 정말 좋 아 할 영화 . .. 음악 부터 춤 까지 모두 매력 적 이 었 다 ㅠㅠㅠ영화 속 에 나온 배우\n",
+            " 를 재개봉 한다는 것 에 감사 를 표 합니다 . 아름다운 영상 과 음악 이 어울어져 좋 아요 . 재미 있 습니다 . 이건 진짜 명작 이 지\n",
+            " 다크 나이트 를 만들 수 있 었 을지 는 의문 입니다 . 이것 은 음악 다큐 , 영화 의 신경지 코 엔 형제 이야기 는 봐 줄 만 하 다고\n",
+            "느니 북한 이 유토피아 라는 말 을 믿 겠 다 잔잔 한 감동 --- 음악 과 연기력 모두 수준급 이 었 습니다 마지막 톰행크스 눈물 에서 나\n",
+            "짜 공효진 보 려고 본 영환데 내용 도 너무 좋 았 고 , 연출 , 음악 도 맘 에 들 고 , , , 신민아 도 이렇게 연기 잘 하 는 줄 \n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "n5lCsscRrouG"
+      },
+      "source": [
+        "# BOW (Bag of Words)\n",
+        "* 문서를 벡터로 변환하는 가장 기본적인 방법\n",
+        "* vocabulary를 구성하고 개별 단어의 존재 여부를 표시\n",
+        "\n",
+        "Vectorizers\n",
+        "* sklearn.feature_extraction.DictVectorizer\n",
+        "* sklearn.feature_extraction.text.CountVectorizer\n",
+        "* sklearn.feature_extraction.text.TfidfVectorizer"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "9PT9TzdLrouH",
+        "outputId": "78b28990-4181-4fbd-bfbc-e5508c01fab6"
+      },
+      "source": [
+        "# CountVectorizer\n",
+        "\n",
+        "from sklearn.feature_extraction.text import CountVectorizer\n",
+        "corpus = [\n",
+        "    \"글에는 재능이 매우 중요한 장르와 덜 중요한 장르가 있다\",\n",
+        "    \"글은 자신이 제기하고자 하는 주제의 근거를 제가능하면 글은 매일 쓰려고 노력한다\",\n",
+        "    \"자료가 충분하면 그 안에 반드시 길이 있다. 자료를 찾다 보면 새로운 생각이 떠오른다\",\n",
+        "    \"훌륭한 커뮤니케이터는 상대의 언어를 사용한다\",\n",
+        "    \"가능하면 글은 매일 쓰려고 노력한다\"\n",
+        "]\n",
+        "\n",
+        "corpus_tokens = []\n",
+        "for doc in corpus:\n",
+        "    corpus_tokens += mecab.morphs(doc)\n",
+        "\n",
+        "vect = CountVectorizer()\n",
+        "vect.fit(corpus_tokens)\n",
+        "\n",
+        "print(vect.vocabulary_)"
+      ],
+      "execution_count": 26,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "{'재능': 19, '매우': 7, '중요': 22, '장르': 18, '자신': 17, '제기': 20, '고자': 1, '주제': 21, '근거': 2, '가능': 0, '매일': 8, '려고': 6, '노력': 3, '한다': 24, '자료': 16, '충분': 23, '반드시': 9, '새로운': 12, '생각': 13, '떠오른다': 5, '훌륭': 25, '니케': 4, '이터': 15, '상대': 11, '언어': 14, '사용': 10}\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "UAfNm7rJrouH",
+        "outputId": "5aa0b395-0d99-4086-bdab-4523db30f9e2"
+      },
+      "source": [
+        "print(vect.get_feature_names())"
+      ],
+      "execution_count": 27,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "['가능', '고자', '근거', '노력', '니케', '떠오른다', '려고', '매우', '매일', '반드시', '사용', '상대', '새로운', '생각', '언어', '이터', '자료', '자신', '장르', '재능', '제기', '주제', '중요', '충분', '한다', '훌륭']\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "YzVQCTIurouI",
+        "outputId": "97d27921-07a8-4cae-f533-2f5bb327f406"
+      },
+      "source": [
+        "X = vect.transform(corpus)\n",
+        "X.toarray()"
+      ],
+      "execution_count": 28,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([[0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n",
+              "        0, 0, 0, 0],\n",
+              "       [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n",
+              "        0, 0, 0, 0],\n",
+              "       [0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n",
+              "        0, 0, 0, 0],\n",
+              "       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n",
+              "        0, 0, 0, 0],\n",
+              "       [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n",
+              "        0, 0, 0, 0]])"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 28
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "_-reECz8rouI",
+        "outputId": "93aa8e35-82ac-4e39-a5f5-45fe630c4d77"
+      },
+      "source": [
+        "X.shape"
+      ],
+      "execution_count": 29,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(5, 26)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 29
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "ckxA3Z35rouI",
+        "outputId": "5597806d-9f87-43a3-9d1f-c9f625abb0c5"
+      },
+      "source": [
+        "from sklearn.feature_extraction.text import TfidfVectorizer\n",
+        "corpus = [\n",
+        "    \"글에는 재능이 매우 중요한 장르와 덜 중요한 장르가 있다\",\n",
+        "    \"글은 자신이 제기하고자 하는 주제의 근거를 제가능하면 글은 매일 쓰려고 노력한다\",\n",
+        "    \"자료가 충분하면 그 안에 반드시 길이 있다. 자료를 찾다 보면 새로운 생각이 떠오른다\",\n",
+        "    \"훌륭한 커뮤니케이터는 상대의 언어를 사용한다\",\n",
+        "    \"가능하면 글은 매일 쓰려고 노력한다\"\n",
+        "]\n",
+        "\n",
+        "corpus_tokens = []\n",
+        "for doc in corpus:\n",
+        "    corpus_tokens += mecab.morphs(doc)\n",
+        "\n",
+        "vect = TfidfVectorizer()\n",
+        "vect.fit(corpus_tokens)\n",
+        "\n",
+        "print(vect.vocabulary_)"
+      ],
+      "execution_count": 30,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "{'재능': 19, '매우': 7, '중요': 22, '장르': 18, '자신': 17, '제기': 20, '고자': 1, '주제': 21, '근거': 2, '가능': 0, '매일': 8, '려고': 6, '노력': 3, '한다': 24, '자료': 16, '충분': 23, '반드시': 9, '새로운': 12, '생각': 13, '떠오른다': 5, '훌륭': 25, '니케': 4, '이터': 15, '상대': 11, '언어': 14, '사용': 10}\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "RicJyCs0rouJ",
+        "outputId": "7c0d0a7f-35c6-478f-f8d4-91f099b94ad8"
+      },
+      "source": [
+        "print(vect.get_feature_names())"
+      ],
+      "execution_count": 31,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "['가능', '고자', '근거', '노력', '니케', '떠오른다', '려고', '매우', '매일', '반드시', '사용', '상대', '새로운', '생각', '언어', '이터', '자료', '자신', '장르', '재능', '제기', '주제', '중요', '충분', '한다', '훌륭']\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "SNJU_8vyrouJ",
+        "outputId": "220ed0ec-8d67-4cad-f4ef-cda31248c34a"
+      },
+      "source": [
+        "X = vect.transform(corpus)\n",
+        "print(X.toarray())"
+      ],
+      "execution_count": 32,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "[[0.         0.         0.         0.         0.         0.\n",
+            "  0.         1.         0.         0.         0.         0.\n",
+            "  0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.        ]\n",
+            " [0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.         1.         0.         0.         0.\n",
+            "  0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.        ]\n",
+            " [0.         0.         0.         0.         0.         0.57735027\n",
+            "  0.         0.         0.         0.57735027 0.         0.\n",
+            "  0.57735027 0.         0.         0.         0.         0.\n",
+            "  0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.        ]\n",
+            " [0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.        ]\n",
+            " [0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.         1.         0.         0.         0.\n",
+            "  0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.         0.         0.         0.         0.\n",
+            "  0.         0.        ]]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "em-iSiugrouK",
+        "outputId": "7f895818-35ff-4939-8a12-36d561d44468"
+      },
+      "source": [
+        "X.shape"
+      ],
+      "execution_count": 33,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(5, 26)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 33
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "O5GLNnTRrouK"
+      },
+      "source": [
+        "# 학습 데이터, 테스트 데이터 Tokenize"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 203
+        },
+        "id": "tcqGU3nOrouK",
+        "outputId": "1abf9ebc-c981-433b-9202-555c26bfced2"
+      },
+      "source": [
+        "train.head()"
+      ],
+      "execution_count": 34,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>id</th>\n",
+              "      <th>document</th>\n",
+              "      <th>label</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>9976970</td>\n",
+              "      <td>아 더빙.. 진짜 짜증나네요 목소리</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>3819312</td>\n",
+              "      <td>흠...포스터보고 초딩영화줄....오버연기조차 가볍지 않구나</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>10265843</td>\n",
+              "      <td>너무재밓었다그래서보는것을추천한다</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>9045019</td>\n",
+              "      <td>교도소 이야기구먼 ..솔직히 재미는 없다..평점 조정</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>6483659</td>\n",
+              "      <td>사이몬페그의 익살스런 연기가 돋보였던 영화!스파이더맨에서 늙어보이기만 했던 커스틴 ...</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "         id                                           document  label\n",
+              "0   9976970                                아 더빙.. 진짜 짜증나네요 목소리      0\n",
+              "1   3819312                  흠...포스터보고 초딩영화줄....오버연기조차 가볍지 않구나      1\n",
+              "2  10265843                                  너무재밓었다그래서보는것을추천한다      0\n",
+              "3   9045019                      교도소 이야기구먼 ..솔직히 재미는 없다..평점 조정      0\n",
+              "4   6483659  사이몬페그의 익살스런 연기가 돋보였던 영화!스파이더맨에서 늙어보이기만 했던 커스틴 ...      1"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 34
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 203
+        },
+        "id": "rswYymF7rouL",
+        "outputId": "c1ee1f82-3573-4902-8eb9-f33858cfd5f4"
+      },
+      "source": [
+        "test.head()"
+      ],
+      "execution_count": 35,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>id</th>\n",
+              "      <th>document</th>\n",
+              "      <th>label</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>6270596</td>\n",
+              "      <td>굳 ㅋ</td>\n",
+              "      <td>1</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>9274899</td>\n",
+              "      <td>GDNTOPCLASSINTHECLUB</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>8544678</td>\n",
+              "      <td>뭐야 이 평점들은.... 나쁘진 않지만 10점 짜리는 더더욱 아니잖아</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>6825595</td>\n",
+              "      <td>지루하지는 않은데 완전 막장임... 돈주고 보기에는....</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>6723715</td>\n",
+              "      <td>3D만 아니었어도 별 다섯 개 줬을텐데.. 왜 3D로 나와서 제 심기를 불편하게 하죠??</td>\n",
+              "      <td>0</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "        id                                           document  label\n",
+              "0  6270596                                                굳 ㅋ      1\n",
+              "1  9274899                               GDNTOPCLASSINTHECLUB      0\n",
+              "2  8544678             뭐야 이 평점들은.... 나쁘진 않지만 10점 짜리는 더더욱 아니잖아      0\n",
+              "3  6825595                   지루하지는 않은데 완전 막장임... 돈주고 보기에는....      0\n",
+              "4  6723715  3D만 아니었어도 별 다섯 개 줬을텐데.. 왜 3D로 나와서 제 심기를 불편하게 하죠??      0"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 35
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "1QPQ_2ObrouL"
+      },
+      "source": [
+        "# 리뷰 텍스트 벡터화\n",
+        "\n",
+        "이하에서 계속 사용"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "j1GoJHDurouL",
+        "outputId": "d7c64a4f-03d9-481f-80dd-3460fa6fc8ca"
+      },
+      "source": [
+        "# 리뷰 텍스트 Vectorize\n",
+        "from sklearn.feature_extraction.text import TfidfVectorizer\n",
+        "\n",
+        "# 전체 데이터에 대해 학습\n",
+        "tfidf = TfidfVectorizer(tokenizer=mecab.morphs)\n",
+        "tfidf.fit(ratings['document'])\n",
+        "\n",
+        "# 데이터를 벡터로 변환\n",
+        "tfidf_train = tfidf.transform(train['document'])\n",
+        "tfidf_test = tfidf.transform(test['document'])"
+      ],
+      "execution_count": 36,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "/usr/local/lib/python3.7/dist-packages/sklearn/feature_extraction/text.py:507: UserWarning: The parameter 'token_pattern' will not be used since 'tokenizer' is not None'\n",
+            "  warnings.warn(\"The parameter 'token_pattern' will not be used\"\n"
+          ],
+          "name": "stderr"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "s2W6pxtSrouM",
+        "outputId": "0f5d8ffe-4729-4dbf-a593-aa9d84ce7ce2"
+      },
+      "source": [
+        "tfidf_train.shape"
+      ],
+      "execution_count": 37,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(149995, 60823)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 37
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "7FUSsV3wrouM",
+        "outputId": "779ed34a-e1a5-456c-b93c-104fd0b8e906"
+      },
+      "source": [
+        "tfidf_test.shape"
+      ],
+      "execution_count": 38,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(49997, 60823)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 38
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "G_0lTSkcrouM"
+      },
+      "source": [
+        "# Naive Bayes classifier \n",
+        "\n",
+        "* 리뷰 텍스트 Vectorize (TfidfVectorizer)\n",
+        "* Naive Bayes 분류기로 학습 (MultinomialNB)\n",
+        "* 예측과 평가(Accuracy score)\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "Vh0qoPfnrouN",
+        "outputId": "9ab0658c-ebb9-4502-cd46-589e824b6f4b"
+      },
+      "source": [
+        "# Naive Bayes 분류기로 학습\n",
+        "from sklearn.naive_bayes import MultinomialNB\n",
+        "\n",
+        "nbc = MultinomialNB()\n",
+        "nbc.fit(tfidf_train, train['label'])"
+      ],
+      "execution_count": 39,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "MultinomialNB(alpha=1.0, class_prior=None, fit_prior=True)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 39
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "9uvZKkGNrouN",
+        "outputId": "326bf7ce-9275-47f3-f0bd-73a5bb557668"
+      },
+      "source": [
+        "# 예측과 평가(Accuracy score)\n",
+        "from sklearn.metrics import accuracy_score\n",
+        "\n",
+        "y_pred = nbc.predict(tfidf_test)\n",
+        "print(\"Accuracy score: {:.3f}\".format(accuracy_score(test[\"label\"], y_pred)))"
+      ],
+      "execution_count": 40,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Accuracy score: 0.842\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "hDxBE-7JrouN"
+      },
+      "source": [
+        "# sklearn Pipeline\n",
+        "\n",
+        "sklearn Pipeline 사용, 한번에 word embedding을 하고 fit"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "-0-PuWa6rouO",
+        "outputId": "e9f36f21-e905-4725-a37f-08e3a5efdac4"
+      },
+      "source": [
+        "from sklearn.pipeline import Pipeline\n",
+        "\n",
+        "nbc_pipe = Pipeline([('vect', tfidf), ('nbc', MultinomialNB())])\n",
+        "nbc_pipe.fit(train[\"document\"], train['label'])"
+      ],
+      "execution_count": 41,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "Pipeline(memory=None,\n",
+              "         steps=[('vect',\n",
+              "                 TfidfVectorizer(analyzer='word', binary=False,\n",
+              "                                 decode_error='strict',\n",
+              "                                 dtype=<class 'numpy.float64'>,\n",
+              "                                 encoding='utf-8', input='content',\n",
+              "                                 lowercase=True, max_df=1.0, max_features=None,\n",
+              "                                 min_df=1, ngram_range=(1, 1), norm='l2',\n",
+              "                                 preprocessor=None, smooth_idf=True,\n",
+              "                                 stop_words=None, strip_accents=None,\n",
+              "                                 sublinear_tf=False,\n",
+              "                                 token_pattern='(?u)\\\\b\\\\w\\\\w+\\\\b',\n",
+              "                                 tokenizer=<bound method Mecab.morphs of <konlpy.tag._mecab.Mecab object at 0x7f39aa471710>>,\n",
+              "                                 use_idf=True, vocabulary=None)),\n",
+              "                ('nbc',\n",
+              "                 MultinomialNB(alpha=1.0, class_prior=None, fit_prior=True))],\n",
+              "         verbose=False)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 41
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "4HlQpRr1rouO",
+        "outputId": "510df90a-8a8b-4e4c-d599-38d7bf6db72d"
+      },
+      "source": [
+        "from sklearn.metrics import accuracy_score\n",
+        "\n",
+        "y_pred = nbc_pipe.predict(test[\"document\"])\n",
+        "print(\"Accuracy score: {:.3f}\".format(accuracy_score(test[\"label\"], y_pred)))"
+      ],
+      "execution_count": 42,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Accuracy score: 0.841\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "hlvAlYRyrouO"
+      },
+      "source": [
+        "# SGD Classifier\n",
+        "\n",
+        "https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "RNTgQVbxrouP",
+        "outputId": "3eab44cf-9542-4708-a83e-226bd21169a5"
+      },
+      "source": [
+        "from sklearn.linear_model import SGDClassifier\n",
+        "\n",
+        "sgd = SGDClassifier(loss='hinge', penalty='l2', alpha=0.001, random_state=0, max_iter=10000, tol=0.00003)\n",
+        "\n",
+        "sgd_pipe = Pipeline([('vect', tfidf), ('sgd', sgd)])\n",
+        "sgd_pipe.fit(train[\"document\"], train['label'])"
+      ],
+      "execution_count": 43,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "Pipeline(memory=None,\n",
+              "         steps=[('vect',\n",
+              "                 TfidfVectorizer(analyzer='word', binary=False,\n",
+              "                                 decode_error='strict',\n",
+              "                                 dtype=<class 'numpy.float64'>,\n",
+              "                                 encoding='utf-8', input='content',\n",
+              "                                 lowercase=True, max_df=1.0, max_features=None,\n",
+              "                                 min_df=1, ngram_range=(1, 1), norm='l2',\n",
+              "                                 preprocessor=None, smooth_idf=True,\n",
+              "                                 stop_words=None, strip_accents=None,\n",
+              "                                 sublinear_tf=False,\n",
+              "                                 token_pattern='(...\n",
+              "                ('sgd',\n",
+              "                 SGDClassifier(alpha=0.001, average=False, class_weight=None,\n",
+              "                               early_stopping=False, epsilon=0.1, eta0=0.0,\n",
+              "                               fit_intercept=True, l1_ratio=0.15,\n",
+              "                               learning_rate='optimal', loss='hinge',\n",
+              "                               max_iter=10000, n_iter_no_change=5, n_jobs=None,\n",
+              "                               penalty='l2', power_t=0.5, random_state=0,\n",
+              "                               shuffle=True, tol=3e-05, validation_fraction=0.1,\n",
+              "                               verbose=0, warm_start=False))],\n",
+              "         verbose=False)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 43
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "qDguTfj9rouP",
+        "outputId": "058fc08d-eaa9-4416-a8ec-34f2cc0645d0"
+      },
+      "source": [
+        "y_pred = sgd_pipe.predict(test[\"document\"])\n",
+        "print(\"Accuracy score: {:.3f}\".format(accuracy_score(test[\"label\"], y_pred)))"
+      ],
+      "execution_count": 44,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Accuracy score: 0.794\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "-DS79Rg5rouP"
+      },
+      "source": [
+        "# RandomForest Classifier\n",
+        "\n",
+        "https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "CKwbmSy1rouQ",
+        "outputId": "44e95daa-a620-4baf-baf5-ccc37b69a63c"
+      },
+      "source": [
+        "from sklearn.ensemble import RandomForestClassifier\n",
+        "\n",
+        "forest = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=0)\n",
+        "\n",
+        "forest_pipe = Pipeline([('vect', tfidf), ('forest', forest)])\n",
+        "forest_pipe.fit(train[\"document\"], train['label'])"
+      ],
+      "execution_count": 45,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "Pipeline(memory=None,\n",
+              "         steps=[('vect',\n",
+              "                 TfidfVectorizer(analyzer='word', binary=False,\n",
+              "                                 decode_error='strict',\n",
+              "                                 dtype=<class 'numpy.float64'>,\n",
+              "                                 encoding='utf-8', input='content',\n",
+              "                                 lowercase=True, max_df=1.0, max_features=None,\n",
+              "                                 min_df=1, ngram_range=(1, 1), norm='l2',\n",
+              "                                 preprocessor=None, smooth_idf=True,\n",
+              "                                 stop_words=None, strip_accents=None,\n",
+              "                                 sublinear_tf=False,\n",
+              "                                 token_pattern='(...\n",
+              "                 RandomForestClassifier(bootstrap=True, ccp_alpha=0.0,\n",
+              "                                        class_weight=None, criterion='gini',\n",
+              "                                        max_depth=5, max_features='auto',\n",
+              "                                        max_leaf_nodes=None, max_samples=None,\n",
+              "                                        min_impurity_decrease=0.0,\n",
+              "                                        min_impurity_split=None,\n",
+              "                                        min_samples_leaf=1, min_samples_split=2,\n",
+              "                                        min_weight_fraction_leaf=0.0,\n",
+              "                                        n_estimators=100, n_jobs=None,\n",
+              "                                        oob_score=False, random_state=0,\n",
+              "                                        verbose=0, warm_start=False))],\n",
+              "         verbose=False)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 45
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "Me0bVgBirouQ",
+        "outputId": "ca1aab3d-5d8c-4e70-aaa5-b5528b943571"
+      },
+      "source": [
+        "y_pred = forest_pipe.predict(test[\"document\"])\n",
+        "print(\"Accuracy score: {:.3f}\".format(accuracy_score(test[\"label\"], y_pred)))"
+      ],
+      "execution_count": 46,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Accuracy score: 0.761\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "nKAy5LNSrouQ"
+      },
+      "source": [
+        "# MLP Classifier\n",
+        "\n",
+        "https://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "k9Z5LvHrrouQ",
+        "outputId": "4449e348-b7a8-4544-e6af-1df0ed1d24af"
+      },
+      "source": [
+        "from sklearn.neural_network import MLPClassifier\n",
+        "\n",
+        "mlp = MLPClassifier(hidden_layer_sizes=(20,), max_iter=30, alpha=0.01, solver='sgd', tol=1e-4, random_state=0, verbose=True)\n",
+        "\n",
+        "mlp_pipe = Pipeline([('vect', tfidf), ('mlp', mlp)])\n",
+        "mlp_pipe.fit(train[\"document\"], train['label'])"
+      ],
+      "execution_count": 47,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Iteration 1, loss = 0.69392228\n",
+            "Iteration 2, loss = 0.68843606\n",
+            "Iteration 3, loss = 0.68327926\n",
+            "Iteration 4, loss = 0.67731024\n",
+            "Iteration 5, loss = 0.67051059\n",
+            "Iteration 6, loss = 0.66272537\n",
+            "Iteration 7, loss = 0.65374853\n",
+            "Iteration 8, loss = 0.64351915\n",
+            "Iteration 9, loss = 0.63200166\n",
+            "Iteration 10, loss = 0.61911727\n",
+            "Iteration 11, loss = 0.60536150\n",
+            "Iteration 12, loss = 0.59113851\n",
+            "Iteration 13, loss = 0.57683162\n",
+            "Iteration 14, loss = 0.56279147\n",
+            "Iteration 15, loss = 0.54927920\n",
+            "Iteration 16, loss = 0.53655282\n",
+            "Iteration 17, loss = 0.52462647\n",
+            "Iteration 18, loss = 0.51363074\n",
+            "Iteration 19, loss = 0.50352043\n",
+            "Iteration 20, loss = 0.49426932\n",
+            "Iteration 21, loss = 0.48580378\n",
+            "Iteration 22, loss = 0.47805043\n",
+            "Iteration 23, loss = 0.47095788\n",
+            "Iteration 24, loss = 0.46441096\n",
+            "Iteration 25, loss = 0.45838359\n",
+            "Iteration 26, loss = 0.45281324\n",
+            "Iteration 27, loss = 0.44767023\n",
+            "Iteration 28, loss = 0.44287038\n",
+            "Iteration 29, loss = 0.43841719\n",
+            "Iteration 30, loss = 0.43425188\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "/usr/local/lib/python3.7/dist-packages/sklearn/neural_network/_multilayer_perceptron.py:571: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (30) reached and the optimization hasn't converged yet.\n",
+            "  % self.max_iter, ConvergenceWarning)\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "Pipeline(memory=None,\n",
+              "         steps=[('vect',\n",
+              "                 TfidfVectorizer(analyzer='word', binary=False,\n",
+              "                                 decode_error='strict',\n",
+              "                                 dtype=<class 'numpy.float64'>,\n",
+              "                                 encoding='utf-8', input='content',\n",
+              "                                 lowercase=True, max_df=1.0, max_features=None,\n",
+              "                                 min_df=1, ngram_range=(1, 1), norm='l2',\n",
+              "                                 preprocessor=None, smooth_idf=True,\n",
+              "                                 stop_words=None, strip_accents=None,\n",
+              "                                 sublinear_tf=False,\n",
+              "                                 token_pattern='(...\n",
+              "                               beta_1=0.9, beta_2=0.999, early_stopping=False,\n",
+              "                               epsilon=1e-08, hidden_layer_sizes=(20,),\n",
+              "                               learning_rate='constant',\n",
+              "                               learning_rate_init=0.001, max_fun=15000,\n",
+              "                               max_iter=30, momentum=0.9, n_iter_no_change=10,\n",
+              "                               nesterovs_momentum=True, power_t=0.5,\n",
+              "                               random_state=0, shuffle=True, solver='sgd',\n",
+              "                               tol=0.0001, validation_fraction=0.1,\n",
+              "                               verbose=True, warm_start=False))],\n",
+              "         verbose=False)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 47
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 0
+        },
+        "id": "kKIHrKgerouR",
+        "outputId": "55f0d25d-339a-40e8-a3e1-f7eae25bb869"
+      },
+      "source": [
+        "y_pred = mlp_pipe.predict(test[\"document\"])\n",
+        "print(\"Accuracy score: {:.3f}\".format(accuracy_score(test[\"label\"], y_pred)))"
+      ],
+      "execution_count": 48,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Accuracy score: 0.808\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "K5gRZP4jrouR"
+      },
+      "source": [
+        "**2018-2021 [FinanceData.KR](FinanceData.KR)**"
+      ]
+    }
+  ]
+}
