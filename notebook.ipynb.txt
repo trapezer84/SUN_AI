@@ -1,0 +1,220 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "Lab 머신러닝 - 기본 예제.ipynb",
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/gist/FinanceData/b7c821f7f7534510bdb6c85a405b2bec/notebook.ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "wvhgTHW4wYWT"
+      },
+      "source": [
+        "# A Basic Example\n",
+        "\n",
+        "<img width=\"20%\" src=\"https://i.imgur.com/9goz5Hw.png\" >\n",
+        "  \n",
+        "\n",
+        "**2018-2022 [FinanceData.KR]() | [facebook.com/financedata]()**\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "OJMBEH69uEou"
+      },
+      "source": [
+        "from sklearn.datasets import load_iris"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "YVKlICLCDIr3"
+      },
+      "source": [
+        "iris = load_iris()\n",
+        "iris.keys()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "zmqCrHOIDcX5"
+      },
+      "source": [
+        "print(iris['DESCR'])"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "yTLDZOPAX-7Y"
+      },
+      "source": [
+        "iris.target"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "cxXPxo0IYDHN"
+      },
+      "source": [
+        "iris.target_names"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "usEkG6v9YHZF"
+      },
+      "source": [
+        "iris.feature_names"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "c4KcuOhGgpai"
+      },
+      "source": [
+        "len(iris.data)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "6BXCIV4wgl61"
+      },
+      "source": [
+        "iris.data[:10]"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "PyLQQ6VkYZAE"
+      },
+      "source": [
+        "from sklearn.model_selection import train_test_split\n",
+        "\n",
+        "X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "rbhSw9hMftzy"
+      },
+      "source": [
+        "from sklearn.preprocessing import StandardScaler\n",
+        "\n",
+        "scaler = StandardScaler()\n",
+        "scaler.fit(X_train)\n",
+        "\n",
+        "X_train = scaler.transform(X_train)\n",
+        "X_test = scaler.transform(X_test)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "wPNmjRRFfto6"
+      },
+      "source": [
+        "X_train.mean(), X_train.std()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "32SzvUWoefnl"
+      },
+      "source": [
+        "from sklearn.neighbors import KNeighborsClassifier\n",
+        "\n",
+        "knn = KNeighborsClassifier(n_neighbors=3)\n",
+        "knn.fit(X_train, y_train)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "IL8ZKP8SfDfU"
+      },
+      "source": [
+        "y_pred = knn.predict(X_test)\n",
+        "y_pred"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "lHLkZeGtfGrT"
+      },
+      "source": [
+        "from sklearn.metrics import accuracy_score\n",
+        "\n",
+        "accuracy_score(y_test, y_pred)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "sUeOOARuDJlF"
+      },
+      "source": [
+        "**2018-2022 [FinanceData.KR]() | [facebook.com/financedata]()**\n"
+      ]
+    }
+  ]
+}

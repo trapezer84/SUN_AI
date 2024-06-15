@@ -1,0 +1,207 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "머신러닝 - train_test_split.ipynb",
+      "provenance": [],
+      "collapsed_sections": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "rRskOzO7DL4r",
+        "colab_type": "text"
+      },
+      "source": [
+        "# train_test_split()\n",
+        "\n",
+        "<img width=\"20%\" src=\"https://i.imgur.com/9goz5Hw.png\" >\n",
+        "  \n",
+        "\n",
+        "#### 2018,2019 [FinanceData.KR](http://financedata.kr) | [facebook.com/financedata](http://facebook.com/financedata)\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "YXeTr_EcbmbK",
+        "colab_type": "text"
+      },
+      "source": [
+        "# train_test_split()\n",
+        "\n",
+        "https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "GtM6tKIAbq8H",
+        "colab_type": "text"
+      },
+      "source": [
+        "```python\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "\n",
+        "train_test_split(arrays, test_size, train_size, random_state, shuffle, stratify)\n",
+        "```\n",
+        "\n",
+        "파라미터\n",
+        "* arrays : 분할할 데이터 지정(Python list, Numpy array, Pandas dataframe ..)\n",
+        "* test_size : 테스트 데이터셋의 비율(float)이나 갯수(int) (default = 0.25)\n",
+        "* train_size : 학습 데이터셋의 비율(float)이나 갯수(int) (default = test_size의 나머지)\n",
+        "* random_state : 셔플을 위한 시드값\n",
+        "* shuffle : 셔플여부 (default = True)\n",
+        "* stratify : 지정한 데이터와 유사한 분포를 유지하도록 한다. 예를 들어, 0과 1이 3:7인 데이터를 정하면 나누어진 데이터셋도 3:7을 유지한다.\n",
+        "\n",
+        "반환값\n",
+        "* X_train, X_test, Y_train, Y_test : arrays에 데이터(X)와 레이블(y)를 둘 다 지정한 경우\n",
+        "* X_train, X_test : arrays에 데이터만 지정한 경우(레이블 없이)\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "NmnE6MlvdgKZ",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "import numpy as np\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "\n",
+        "X = np.arange(10).reshape(5, 2)\n",
+        "y = np.arange(5)"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "7Ml7qJpMkh2n",
+        "colab_type": "code",
+        "outputId": "1080e380-0419-47ec-8a57-652d02190684",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 107
+        }
+      },
+      "source": [
+        "X"
+      ],
+      "execution_count": 0,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([[0, 1],\n",
+              "       [2, 3],\n",
+              "       [4, 5],\n",
+              "       [6, 7],\n",
+              "       [8, 9]])"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 9
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "aEv-MSgakigI",
+        "colab_type": "code",
+        "outputId": "b6f42fd5-7dc7-4d82-863c-27ce9e55c029",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 35
+        }
+      },
+      "source": [
+        "y"
+      ],
+      "execution_count": 0,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([0, 1, 2, 3, 4])"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 10
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "_AMhqWB5lZZP",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "X_train, X_test = train_test_split(X, test_size=0.3, random_state=101)\n",
+        "\n",
+        "print(X_train) # [[4 5], [2 3],  [6 7]]\n",
+        "print(X_test)  # [[0 1], [8 9]]"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "_CsUmzMwkkF7",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=101)"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "U5zmhN9Ckzw4",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "print(X_train) # [[8 9], [4 5], [2 3], [6 7]]\n",
+        "print(X_test)  # [[0 1]]\n",
+        "print(y_train) # [4 2 1 3]\n",
+        "print(y_test)  # [0]"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "X53wg_jKDcnq",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 2018,2019 [FinanceData.KR](http://financedata.kr) | [facebook.com/financedata](http://facebook.com/financedata)\n"
+      ]
+    }
+  ]
+}
